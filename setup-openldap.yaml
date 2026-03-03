@@ -1,0 +1,77 @@
+- name: Setup OpenLDAP Server
+  hosts: openLDAP_server
+  become: yes
+  vars:
+  ldap_domain: "mydomain.org"
+  ldap_org: "MyOrg"
+  ldap_root_pass: "SuperSecretPassword"
+
+  tasks:
+  - name: Install openLDAP packages
+    apt:
+      name:
+        - slapd
+        - ldap-utils
+      state: present
+      update_cache: yes
+
+  - name: Configurate slapd via debconf
+    debconf:
+      name: slapd
+      question: "{{ item.q }}"
+      value: "{{ item.v }}"
+      vtype: "{{ item.t }}"
+    loop:
+      - {q: 'slapd/internal/admin_password', v: "{{ ldap_root_pass }}", t: 'password'}
+      - {q: 'slapd/domain', v: "{{ ldap_domain }}", t: 'string'}
+
+  - name: Create structure and users LDIF
+    copy:
+      dest: /tmp/setup.ldif
+      content: |
+      dn: ou=groups,dc=example, dc=org
+      objectClass: organizationalUnit
+      ou: groups
+
+      dn: ou=users, dc=example, dc=org
+      objectClass: organizationalUnit
+      ou: users
+
+      #Groups
+      dn: cn=devs, ou=groups, dc=example, dc=org
+      objectClass: posixGroup
+      gidNumber: 5001
+      cn: devs
+
+      dn: cn=admins, ou=groups, dc=example, dc=org
+      objectClass: posixGroup
+      gidNumber: 5002
+      cn: admins
+
+      #Users
+      dn: uid=dmiPetrov, ou=users, dc=example, dc=org
+      objectClass: inetOrgPerson
+      objectClass: posixAccount
+      cn: Dmitry Petrov
+      sn: Petrov
+      uid: dmiPetrov
+      uidNumber: 10001
+      gidNumber: 5002
+      homeDirectory: /home/dmiPetrov
+      userPassword: password123
+
+      dn: uid=ivIvanov, ou=users, dc=example, dc=org
+      objectClass: inetOrgPerson
+      objectClass: posixAccount
+      cn: Ivan Ivanov
+      sn: Ivanov
+      uid: ivIvanov
+      uidNumber: 10002
+      gidNumber: 5001
+      homeDirectory: /home/ivIvanov
+      userPassword: pass123
+  - name: Import ldif to openLDAP
+    shell: "ldapadd -x -D 'cn=admin,dc=example,dc=org' -w {{ ldap_root_pass }} -f /tmp/setup.ldif"
+    register: ldap_result
+    failed_when: "ldap_result.rc != 0 and 'Already exists' not in ldap_result.stderr"
+    changed_when: "ldap_result.rc == 0"
