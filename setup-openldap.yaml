@@ -4,7 +4,15 @@
   vars:
     ldap_domain: "mydomain.org"
     ldap_org: "MyOrg"
+    ldap_dn: "dc=mydomain,dc=org"
     ldap_root_pass: "SuperSecret123"
+
+    my_groups:
+      - { name: 'devs', gid: 5001 }
+      - { name: 'admin', gid: 5002 }
+    my_users:
+      - { uid: 'dmitPetrov', name: 'Dmitry', sn: 'Petrov', uid_num: 10001, gid_num: 5002, password: 'password123' }
+      - { uid: 'ivIvanov', name: 'Ivan', sn: 'Ivanov', uid_num: 10002, gid_num: 5001, password: 'password456' }
 
   tasks:
   - name: Install openLDAP packages
@@ -12,6 +20,7 @@
       name:
         - slapd
         - ldap-utils
+        - python3-ldap
       state: present
       update_cache: yes
 
@@ -28,53 +37,12 @@
       vtype: "{{ item.t }}"
     loop:
       - {q: 'slapd/internal/admin_password', v: "{{ ldap_root_pass }}", t: 'password'}
-      - {q: 'slapd/domain', v: "{{ ldap_domain }}", t: 'string'}
+      - {q: 'slapd/domain', v: "{{ ldap_domain }}", t: 'string' }
 
-  - name: Create structure and users LDIF
-    copy:
+  - name: Generate LDIF from template
+    template:
+      src: templates/data.ldif.j2
       dest: /tmp/setup.ldif
-      content: |
-        dn: ou=groups,dc=mydomain,dc=org
-        objectClass: organizationalUnit
-        ou: groups
-
-        dn: ou=users,dc=mydomain,dc=org
-        objectClass: organizationalUnit
-        ou: users
-
-        #Groups
-        dn: cn=devs,ou=groups,dc=mydomain,dc=org
-        objectClass: posixGroup
-        gidNumber: 5001
-        cn: devs
-
-        dn: cn=admins,ou=groups,dc=mydomain,dc=org
-        objectClass: posixGroup
-        gidNumber: 5002
-        cn: admins
-
-        #Users
-        dn: uid=dmiPetrov,ou=users,dc=mydomain,dc=org
-        objectClass: inetOrgPerson
-        objectClass: posixAccount
-        cn: Dmitry Petrov
-        sn: Petrov
-        uid: dmiPetrov
-        uidNumber: 10001
-        gidNumber: 5002
-        homeDirectory: /home/dmiPetrov
-        userPassword: password123
-
-        dn: uid=ivIvanov,ou=users,dc=mydomain,dc=org
-        objectClass: inetOrgPerson
-        objectClass: posixAccount
-        cn: Ivan Ivanov
-        sn: Ivanov
-        uid: ivIvanov
-        uidNumber: 10002
-        gidNumber: 5001
-        homeDirectory: /home/ivIvanov
-        userPassword: pass123
 
   - name: Import ldif to openLDAP
     shell: "ldapadd -x -D 'cn=admin,dc=mydomain,dc=org' -w {{ ldap_root_pass }} -f /tmp/setup.ldif"

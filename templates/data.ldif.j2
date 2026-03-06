@@ -1,0 +1,30 @@
+dn: ou=groups,{{ ldap_dn }}
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=users,{{ ldap_dn }}
+objectClass: organizationalUnit
+ou: users
+
+{% for group in my_groups %}
+dn: cn={{ group.name }},ou=groups,{{ ldap_dn }}
+objectClass: posixGroup
+gidNumber: {{ group.gid }}
+cn: {{ group.name }}
+
+{% endfor %}
+
+
+{% for user in my_users %}
+dn: uid={{ user.uid }},ou=users,{{ ldap_dn }}
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: {{ user.name }}
+sn: {{ user.sn }}
+uid: {{ user.uid }}
+uidNumber: {{ user.uid_num }}
+gidNumber: {{ user.gid_num }}
+homeDirectory: /home/{{ user.uid }}
+userPassword: {{ user.password }}
+
+{% endfor %}
