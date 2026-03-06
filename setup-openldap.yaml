@@ -2,9 +2,9 @@
   hosts: openLDAP_server
   become: yes
   vars:
-  ldap_domain: "mydomain.org"
-  ldap_org: "MyOrg"
-  ldap_root_pass: "SuperSecretPassword"
+    ldap_domain: "mydomain.org"
+    ldap_org: "MyOrg"
+    ldap_root_pass: "SuperSecret123"
 
   tasks:
   - name: Install openLDAP packages
@@ -14,6 +14,11 @@
         - ldap-utils
       state: present
       update_cache: yes
+
+  - name: Install debconf-utils for configuration
+    apt:
+      name: debconf-utils
+      state: present
 
   - name: Configurate slapd via debconf
     debconf:
@@ -29,49 +34,50 @@
     copy:
       dest: /tmp/setup.ldif
       content: |
-      dn: ou=groups,dc=example, dc=org
-      objectClass: organizationalUnit
-      ou: groups
+        dn: ou=groups,dc=mydomain,dc=org
+        objectClass: organizationalUnit
+        ou: groups
 
-      dn: ou=users, dc=example, dc=org
-      objectClass: organizationalUnit
-      ou: users
+        dn: ou=users,dc=mydomain,dc=org
+        objectClass: organizationalUnit
+        ou: users
 
-      #Groups
-      dn: cn=devs, ou=groups, dc=example, dc=org
-      objectClass: posixGroup
-      gidNumber: 5001
-      cn: devs
+        #Groups
+        dn: cn=devs,ou=groups,dc=mydomain,dc=org
+        objectClass: posixGroup
+        gidNumber: 5001
+        cn: devs
 
-      dn: cn=admins, ou=groups, dc=example, dc=org
-      objectClass: posixGroup
-      gidNumber: 5002
-      cn: admins
+        dn: cn=admins,ou=groups,dc=mydomain,dc=org
+        objectClass: posixGroup
+        gidNumber: 5002
+        cn: admins
 
-      #Users
-      dn: uid=dmiPetrov, ou=users, dc=example, dc=org
-      objectClass: inetOrgPerson
-      objectClass: posixAccount
-      cn: Dmitry Petrov
-      sn: Petrov
-      uid: dmiPetrov
-      uidNumber: 10001
-      gidNumber: 5002
-      homeDirectory: /home/dmiPetrov
-      userPassword: password123
+        #Users
+        dn: uid=dmiPetrov,ou=users,dc=mydomain,dc=org
+        objectClass: inetOrgPerson
+        objectClass: posixAccount
+        cn: Dmitry Petrov
+        sn: Petrov
+        uid: dmiPetrov
+        uidNumber: 10001
+        gidNumber: 5002
+        homeDirectory: /home/dmiPetrov
+        userPassword: password123
 
-      dn: uid=ivIvanov, ou=users, dc=example, dc=org
-      objectClass: inetOrgPerson
-      objectClass: posixAccount
-      cn: Ivan Ivanov
-      sn: Ivanov
-      uid: ivIvanov
-      uidNumber: 10002
-      gidNumber: 5001
-      homeDirectory: /home/ivIvanov
-      userPassword: pass123
+        dn: uid=ivIvanov,ou=users,dc=mydomain,dc=org
+        objectClass: inetOrgPerson
+        objectClass: posixAccount
+        cn: Ivan Ivanov
+        sn: Ivanov
+        uid: ivIvanov
+        uidNumber: 10002
+        gidNumber: 5001
+        homeDirectory: /home/ivIvanov
+        userPassword: pass123
+
   - name: Import ldif to openLDAP
-    shell: "ldapadd -x -D 'cn=admin,dc=example,dc=org' -w {{ ldap_root_pass }} -f /tmp/setup.ldif"
+    shell: "ldapadd -x -D 'cn=admin,dc=mydomain,dc=org' -w {{ ldap_root_pass }} -f /tmp/setup.ldif"
     register: ldap_result
     failed_when: "ldap_result.rc != 0 and 'Already exists' not in ldap_result.stderr"
     changed_when: "ldap_result.rc == 0"
