@@ -21,13 +21,9 @@
         - slapd
         - ldap-utils
         - python3-ldap
+        - debconf-utils
       state: present
       update_cache: yes
-
-  - name: Install debconf-utils for configuration
-    apt:
-      name: debconf-utils
-      state: present
 
   - name: Force set LDAP root pass
     shell: |
