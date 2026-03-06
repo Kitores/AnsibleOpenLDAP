@@ -110,3 +110,5 @@ ansible-playbook -i inventory.ini setup-openldap.yaml
 ```bash
 ldapsearch -x -D "cn=admin,dc=mydomain,dc=org" -w SuperSecret123 -b "dc=mydomain,dc=org"
 ```
+![img.png](screenshots/img.png)
+![img_1.png](screenshots/img_1.png)
