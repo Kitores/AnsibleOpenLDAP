@@ -1,11 +1,21 @@
+# domain object
+dn: {{ ldap_dn }}
+objectClass: dcObject
+objectClass: organization
+o: {{ ldap_org }}
+dc: {{ldap_domain.split('.')[0] }}
+
+# gropup unit
 dn: ou=groups,{{ ldap_dn }}
 objectClass: organizationalUnit
 ou: groups
 
+# user unit
 dn: ou=users,{{ ldap_dn }}
 objectClass: organizationalUnit
 ou: users
 
+# groups creating
 {% for group in my_groups %}
 dn: cn={{ group.name }},ou=groups,{{ ldap_dn }}
 objectClass: posixGroup
@@ -13,8 +23,7 @@ gidNumber: {{ group.gid }}
 cn: {{ group.name }}
 
 {% endfor %}
-
-
+# users creating
 {% for user in my_users %}
 dn: uid={{ user.uid }},ou=users,{{ ldap_dn }}
 objectClass: inetOrgPerson

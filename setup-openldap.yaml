@@ -29,15 +29,24 @@
       name: debconf-utils
       state: present
 
-  - name: Configurate slapd via debconf
-    debconf:
-      name: slapd
-      question: "{{ item.q }}"
-      value: "{{ item.v }}"
-      vtype: "{{ item.t }}"
-    loop:
-      - {q: 'slapd/internal/admin_password', v: "{{ ldap_root_pass }}", t: 'password'}
-      - {q: 'slapd/domain', v: "{{ ldap_domain }}", t: 'string' }
+  - name: Force set LDAP root pass
+    shell: |
+      HASH=$(slappasswd -s "{{ ldap_root_pass }}")
+      cat <<EOF > /tmp/set_root_pw.ldif
+      dn: olcDatabase={1}mdb,cn=config
+      changetype: modify
+      replace: olcSuffix
+      olcSuffix: {{ ldap_dn }}
+      -
+      replace: olcRootDN
+      olcRootDN: cn=admin,{{ ldap_dn }}
+      -
+      replace: olcRootPW
+      olcRootPW: $HASH
+      EOF
+      ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f /tmp/set_root_pw.ldif
+    register: set_pw_result
+    changed_when: true
 
   - name: Generate LDIF from template
     template:
@@ -45,7 +54,7 @@
       dest: /tmp/setup.ldif
 
   - name: Import ldif to openLDAP
-    shell: "ldapadd -x -D 'cn=admin,dc=mydomain,dc=org' -w {{ ldap_root_pass }} -f /tmp/setup.ldif"
+    shell: "ldapadd -x -D 'cn=admin,{{ ldap_dn }}' -w {{ ldap_root_pass }} -f /tmp/setup.ldif"
     register: ldap_result
     failed_when: "ldap_result.rc != 0 and 'Already exists' not in ldap_result.stderr"
     changed_when: "ldap_result.rc == 0"
