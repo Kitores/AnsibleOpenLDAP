@@ -25,6 +25,12 @@
       state: present
       update_cache: yes
 
+  - name: Check if LDAP is already configured
+    shell: "ldapsearch -Q -Y EXTERNAL -H ldapi:/// -b cn=config '(olcSuffix={{ ldap_dn }})' dn"
+    register: ldap_check
+    changed_when: false
+    failed_when: false
+
   - name: Force set LDAP root pass
     shell: |
       HASH=$(slappasswd -s "{{ ldap_root_pass }}")
@@ -41,8 +47,9 @@
       olcRootPW: $HASH
       EOF
       ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f /tmp/set_root_pw.ldif
+    when: ldap_check.stdout == ""
     register: set_pw_result
-    changed_when: true
+    #changed_when: true
 
   - name: Generate LDIF from template
     template:
