@@ -88,9 +88,11 @@ dn: cn={{ group.name }},ou=groups,{{ ldap_dn }}
 ### 2. Основные этапы Playbook
 
 1. **Install openLDAP packages:** Установка пакетов `slapd`, `ldap-utils`, `debconf-utils` и `python3-ldap`.
-2. **Force set LDAP root pass:** Принудительная перезапись атрибутов `olcDatabase={1}mdb` для гарантии верного пароля.
-3. **Generate LDIF from template:** Сборка финального LDIF-файла на основе списков пользователей и групп.
-4. **Import ldif to openLDAP:** Импорт структуры.
+2. **Check if LDAP is already configured:**
+Проверка соответствия конфигурации LDAP
+3. **Force set LDAP root pass:** Принудительная перезапись атрибутов `olcDatabase={1}mdb` для гарантии верного пароля.
+4. **Generate LDIF from template:** Сборка финального LDIF-файла на основе списков пользователей и групп.
+5. **Import ldif to openLDAP:** Импорт структуры.
 
 ---
 
@@ -111,4 +113,4 @@ ansible-playbook -i inventory.ini setup-openldap.yaml
 ldapsearch -x -D "cn=admin,dc=mydomain,dc=org" -w SuperSecret123 -b "dc=mydomain,dc=org"
 ```
 ![img.png](screenshots/img.png)
-![img_1.png](screenshots/img_1.png)
+![img.png](screenshots/image.png)
